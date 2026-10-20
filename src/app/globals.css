@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: light --default;
+}
+
+/* ===== Barakah Books theme: গাঢ় সবুজ + সোনালি ===== */
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+
+  --color-primary: oklch(43% 0.085 162);          /* emerald #0f5c45 */
+  --color-primary-content: oklch(98% 0.01 90);
+  --color-secondary: oklch(74% 0.125 82);         /* gold #c9a227 */
+  --color-secondary-content: oklch(25% 0.04 70);
+  --color-accent: oklch(52% 0.11 30);             /* maroon */
+  --color-accent-content: oklch(98% 0.01 90);
+
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(97.6% 0.012 85);        /* cream */
+  --color-base-300: oklch(93% 0.02 85);
+  --color-base-content: oklch(27% 0.02 160);
+
+  --color-neutral: oklch(30% 0.04 165);
+  --color-neutral-content: oklch(97% 0.01 90);
+
+  --color-success: oklch(62% 0.15 150);
+  --color-warning: oklch(80% 0.15 80);
+  --color-error: oklch(58% 0.2 27);
+
+  --radius-box: 1rem;
+  --radius-field: 0.6rem;
+}
+
+@custom-variant dark (&:where([data-theme=night], [data-theme=night] *));
+
+@theme {
+  --font-sans: "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Amiri", serif;
+}
+
+/* ইসলামিক জ্যামিতিক নকশা (৮ কোণা তারা) — hero / footer এর background */
+.islamic-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' stroke='%23d4b25a' stroke-opacity='0.18' stroke-width='1'%3E%3Cpath d='M30 6l7 17 17 7-17 7-7 17-7-17-17-7 17-7z'/%3E%3Crect x='19' y='19' width='22' height='22' transform='rotate(45 30 30)'/%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 60px 60px;
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+}
+
+/* horizontal shelf scroll — scrollbar লুকানো */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }

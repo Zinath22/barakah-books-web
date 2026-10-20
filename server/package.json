@@ -1,0 +1,23 @@
+{
+  "name": "barakah-books-server",
+  "version": "1.0.0",
+  "description": "Express REST API for Barakah Books (web + Flutter mobile app)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed-books.js"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.5.0",
+    "mongodb": "^7.1.1",
+    "morgan": "^1.10.1",
+    "resend": "^6.17.1"
+  }
+}

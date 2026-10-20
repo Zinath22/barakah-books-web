@@ -1,0 +1,23 @@
+import { Router } from "express";
+import products from "./product.routes.js";
+import reviews from "./review.routes.js";
+import users from "./user.routes.js";
+import cart from "./cart.routes.js";
+import wishlist from "./wishlist.routes.js";
+import coupons from "./coupon.routes.js";
+import orders from "./order.routes.js";
+import otp from "./otp.routes.js";
+import payment from "./payment.routes.js";
+
+const api = Router();
+api.get("/health", (req, res) => res.json({ success: true, status: "ok", time: new Date() }));
+api.use("/products", products);
+api.use("/reviews", reviews);
+api.use("/users", users);
+api.use("/cart", cart);
+api.use("/wishlist", wishlist);
+api.use("/coupons", coupons);
+api.use("/orders", orders);
+api.use("/otp", otp);
+api.use("/payment", payment);
+export default api;
