@@ -1,7 +1,5 @@
 
 
-
-
 // "use client";
 
 // import { useEffect } from "react";
@@ -33,21 +31,33 @@
 //           0
 //         );
 
+//         // 🔥 Get coupon data from localStorage
+//         let couponData = null;
+//         try {
+//           const saved = localStorage.getItem("appliedCoupon");
+//           if (saved) {
+//             couponData = JSON.parse(saved);
+//           }
+//         } catch (e) {
+//           console.log("Coupon parse error:", e);
+//         }
+
 //         const orderData = {
-//           userEmail: user.email,
-//           products: cart,
-//           total,
-//           payment: "Paid",
-//           status: "Pending",
+//           userEmail:      user.email,
+//           products:       cart,
+//           originalAmount: couponData ? couponData.originalAmount : total,
+//           discountAmount: couponData ? couponData.discountAmount : 0,
+//           total:          couponData ? couponData.finalAmount    : total,
+//           couponCode:     couponData ? couponData.code           : null,
+//           payment:        "Paid",
+//           status:         "Pending",
 //         };
 
 //         console.log("ORDER DATA:", orderData);
 
 //         const res = await fetch("/api/orders", {
 //           method: "POST",
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
+//           headers: { "Content-Type": "application/json" },
 //           body: JSON.stringify(orderData),
 //         });
 
@@ -60,27 +70,30 @@
 //         if (data.success) {
 //           clearCart();
 
+//           // 🔥 Clear coupon from localStorage after order saved
+//           localStorage.removeItem("appliedCoupon");
+
 //           Swal.fire({
-//             icon: "success",
-//             title: "Payment Successful",
-//             text: "Your order has been placed successfully.",
-//             timer: 2000,
+//             icon:              "success",
+//             title:             "Payment Successful",
+//             text:              "Your order has been placed successfully.",
+//             timer:             2000,
 //             showConfirmButton: false,
 //           });
 //         } else {
 //           Swal.fire({
-//             icon: "error",
+//             icon:  "error",
 //             title: "Order Save Failed",
-//             text: data.message || "Something went wrong",
+//             text:  data.message || "Something went wrong",
 //           });
 //         }
 //       } catch (error) {
 //         console.log("SAVE ORDER ERROR:", error);
 
 //         Swal.fire({
-//           icon: "error",
+//           icon:  "error",
 //           title: "Error",
-//           text: "Something went wrong",
+//           text:  "Something went wrong",
 //         });
 //       }
 //     };
@@ -102,12 +115,14 @@
 //         </p>
 
 //         <p className="text-sm text-gray-500">
-//          Your order has been saved successfully.
-//      </p>
+//           Your order has been saved successfully.
+//         </p>
 //       </div>
 //     </div>
 //   );
 // }
+
+
 
 "use client";
 
@@ -136,7 +151,7 @@ export default function SuccessPage() {
         }
 
         const total = cart.reduce(
-          (sum, item) => sum + Number(item.price || 0),
+          (sum, item) => sum + Number(item.price || 0) * Math.max(1, Number(item.qty) || 1),
           0
         );
 

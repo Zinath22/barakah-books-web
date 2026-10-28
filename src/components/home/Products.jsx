@@ -24,6 +24,7 @@ const SORTS = [
 ];
 
 const time = (b) => new Date(b.createdAt || 0).getTime();
+const soldOf = (b) => Number(b.sold) || 0;
 
 const Products = ({ products = [], initialCategory = "all", initialQuery = "", initialSort = "newest" }) => {
   const [category, setCategory] = useState(initialCategory);
@@ -36,6 +37,8 @@ const Products = ({ products = [], initialCategory = "all", initialQuery = "", i
     const q = query.trim().toLowerCase();
     const range = PRICE_RANGES.find((r) => r.value === price);
     let list = products.filter((b) => {
+      // বেস্টসেলার: শুধু যে বই অন্তত একবার বিক্রি হয়েছে
+      if (sort === "popular" && soldOf(b) <= 0) return false;
       if (category !== "all" && b.category !== category) return false;
       if (range?.test && !range.test(Number(b.price) || 0)) return false;
       if (q) {
@@ -46,7 +49,7 @@ const Products = ({ products = [], initialCategory = "all", initialQuery = "", i
     });
     const sorters = {
       newest: (a, b) => time(b) - time(a),
-      popular: (a, b) => (b.sold || 0) - (a.sold || 0),
+      popular: (a, b) => soldOf(b) - soldOf(a) || time(b) - time(a),
       price_asc: (a, b) => a.price - b.price,
       price_desc: (a, b) => b.price - a.price,
       discount: (a, b) => discountPercent(b) - discountPercent(a),
@@ -62,8 +65,14 @@ const Products = ({ products = [], initialCategory = "all", initialQuery = "", i
     setCategory("all");
     setQuery("");
     setPrice("all");
+    setSort("newest");
     setPage(1);
   };
+
+  const isBestseller = sort === "popular";
+  const heading = isBestseller
+    ? category === "all" ? "বেস্টসেলার" : `বেস্টসেলার: ${category}`
+    : category === "all" ? "সব বই" : category;
   const pick = (setter) => (v) => {
     setter(v);
     setPage(1);
@@ -149,14 +158,16 @@ const Products = ({ products = [], initialCategory = "all", initialQuery = "", i
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold sm:text-2xl">{category === "all" ? "সব বই" : category}</h1>
+          <h1 className="text-xl font-bold sm:text-2xl">{heading}</h1>
           <p className="text-sm text-base-content/60">{toBn(filtered.length)}টি বই</p>
         </div>
 
         {shown.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-base-300 bg-base-100 py-20 text-center">
             <p className="mb-2 text-5xl">📚</p>
-            <p className="text-base-content/60">কোনো বই পাওয়া যায়নি</p>
+            <p className="text-base-content/60">
+              {isBestseller ? "এখনো কোনো বই বিক্রি হয়নি" : "কোনো বই পাওয়া যায়নি"}
+            </p>
             <button onClick={reset} className="btn btn-primary btn-sm mt-4 gap-1">
               <FiX /> সব filter মুছুন
             </button>

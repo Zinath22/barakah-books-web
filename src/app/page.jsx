@@ -32,7 +32,6 @@ const Home = async () => {
   const newest = [...books].sort((a, b) => time(b) - time(a)).slice(0, 10);
   const popular = books.filter((b) => b.sold > 0).sort((a, b) => b.sold - a.sold).slice(0, 10);
   const offers = books.filter((b) => discountPercent(b) >= 20).slice(0, 5);
-  const kids = books.filter((b) => b.category === "শিশু-কিশোর").slice(0, 5);
 
   return (
     <div className="space-y-14">
@@ -52,14 +51,7 @@ const Home = async () => {
       <CategoryGrid books={books} />
       <BookShelf title="নতুন সংযোজন" subtitle="সদ্য আসা বইগুলো" books={newest} href="/products?sort=newest" />
       <DailyAyah />
-      <BookShelf title="বেস্টসেলার" subtitle="পাঠকদের সবচেয়ে পছন্দের বই" books={popular} href="/products?sort=popular" />
       <BookShelf title="বিশেষ ছাড়" subtitle="২০% বা তার বেশি ছাড়ে" books={offers} href="/products?sort=discount" />
-      <BookShelf
-        title="শিশু-কিশোরদের জন্য"
-        subtitle="ছোটদের ঈমান ও আখলাক গড়ার বই"
-        books={kids}
-        href={`/products?category=${encodeURIComponent("শিশু-কিশোর")}`}
-      />
 
       {books.length === 0 && (
         <div className="rounded-3xl border border-dashed border-base-300 bg-base-100 p-10 text-center">

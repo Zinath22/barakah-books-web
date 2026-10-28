@@ -45,7 +45,8 @@ export const CartProvider = ({ children }) => {
           const parsed = JSON.parse(saved);
 
           if (Array.isArray(parsed)) {
-            setCart(parsed);
+            // পুরোনো কার্টের আইটেমে qty না থাকলে ১ ধরা হবে
+            setCart(parsed.map((item) => ({ ...item, qty: Math.max(1, Number(item.qty) || 1) })));
           } else {
             setCart([]);
           }
@@ -101,8 +102,21 @@ export const CartProvider = ({ children }) => {
 
       if (exists) return prev;
 
-      return [...prev, product];
+      return [...prev, { ...product, qty: 1 }];
     });
+  };
+
+  // 🔥 পরিমাণ বদলানো (কমপক্ষে ১, স্টকের বেশি না)
+  const updateQty = (id, qty) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item._id !== id) return item;
+        const stock = Number(item.stock);
+        const max = stock > 0 ? stock : 99;
+        const next = Math.min(Math.max(1, Number(qty) || 1), max);
+        return { ...item, qty: next };
+      })
+    );
   };
 
   // 🔥 REMOVE ITEM
@@ -123,6 +137,7 @@ export const CartProvider = ({ children }) => {
       value={{
         cart,
         addToCart,
+        updateQty,
         removeFromCart,
         clearCart,
         isLoaded,

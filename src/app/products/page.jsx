@@ -2,9 +2,18 @@ import Products from "@/components/home/Products";
 import { getProducts } from "@/actions/server/product";
 import { CATEGORY_VALUES } from "@/lib/books";
 
-export const metadata = {
-  title: "সব বই",
-  description: "কুরআন, হাদিস, সীরাত, ফিকহ, আকীদা ও শিশুদের ইসলামিক বইয়ের সংগ্রহ",
+export const generateMetadata = async ({ searchParams }) => {
+  const sp = (await searchParams) || {};
+  if (sp.sort === "popular") {
+    return {
+      title: "বেস্টসেলার",
+      description: "পাঠকদের সবচেয়ে বেশি কেনা ইসলামিক বই",
+    };
+  }
+  return {
+    title: "সব বই",
+    description: "কুরআন, হাদিস, সীরাত, ফিকহ, আকীদা ও শিশুদের ইসলামিক বইয়ের সংগ্রহ",
+  };
 };
 
 const ProductsPage = async ({ searchParams }) => {

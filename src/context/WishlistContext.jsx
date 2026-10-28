@@ -5,9 +5,23 @@ import { useAuth } from "@/provider/AuthProvider";
 
 const WishlistContext = createContext(null);
 
+// Provider না পেলে (যেমন dev ক্যাশের সমস্যায় সার্ভার রেন্ডারের সময়) পেজ না ভেঙে খালি wishlist দেয়
+const fallbackWishlist = {
+  wishlist: [],
+  addToWishlist: () => {},
+  removeFromWishlist: () => {},
+  toggleWishlist: () => {},
+  isInWishlist: () => false,
+};
+
 export const useWishlist = () => {
   const context = useContext(WishlistContext);
-  if (!context) throw new Error("useWishlist must be used inside WishlistProvider");
+  if (!context) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("useWishlist: WishlistProvider পাওয়া যায়নি, খালি wishlist ব্যবহার হচ্ছে");
+    }
+    return fallbackWishlist;
+  }
   return context;
 };
 
