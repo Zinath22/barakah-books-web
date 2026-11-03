@@ -1,32 +1,15 @@
 "use client";
 
-import Link from "next/link";
+import SalesDashboard from "@/components/admin/SalesDashboard";
 
 export default function AdminPage() {
   return (
-    <div className="p-5">
-      <h1 className="text-2xl font-bold">🛠 Admin Dashboard</h1>
-
-      <div className="grid gap-4 mt-5">
-
-        {/* <Link href="/admin/products" className="btn btn-primary">
-          📦 Manage Products
-        </Link>
-
-        <Link href="/admin/carts" className="btn btn-secondary">
-          🛒 Manage Carts
-        </Link>
-
-        <Link href="/admin/users" className="btn btn-accent">
-          👤 Manage Users
-        </Link>
-               
-  <Link href="/admin/coupons" className="btn btn-accent">
-    🏷️ Manage Coupons
-  </Link> */}
-
-
+    <div className="space-y-6">
+      <div>
+        {/* <h1 className="text-2xl font-bold">ড্যাশবোর্ড</h1> */}
+        <p className="text-2xl font-bold">দোকানের বিক্রির হিসাব</p>
       </div>
+      <SalesDashboard />
     </div>
   );
 }

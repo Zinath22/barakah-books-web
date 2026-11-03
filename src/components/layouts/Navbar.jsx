@@ -35,6 +35,8 @@ const LINKS = [
   { href: "/products", label: "সব বই" },
   { href: "/products?sort=popular", label: "বেস্টসেলার" },
   { href: "/products?sort=discount", label: "অফার" },
+    { href: "/reading", label: "পড়ার যাত্রা" },
+  { href: "/quiz", label: "কুইজ" },
 ];
 
 const Navbar = () => {
@@ -68,6 +70,8 @@ const Navbar = () => {
   const userLinks = (
     <>
       <li><Link href="/dashboard" onClick={close}>📦 আমার অর্ডার</Link></li>
+            <li><Link href="/reading" onClick={close}>📖 আমার পড়ার যাত্রা</Link></li>
+      <li><Link href="/quiz?tab=history" onClick={close}>📝 আমার কুইজের ফলাফল</Link></li>
       <li>
         <Link href="/wishlist" onClick={close}>
           ❤️ উইশলিস্ট

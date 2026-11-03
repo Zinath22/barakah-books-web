@@ -20,15 +20,29 @@ export const EMPTY_BOOK = {
   stock: "",
   img: "",
   description: "",
+  previewPages: "", // "একটু পড়ুন" এর পাতার ছবির লিংক, প্রতি লাইনে একটা
+  authorBio: "",
+  authorImg: "",
 };
 
 const NUMBER_FIELDS = ["price", "originalPrice", "pages", "stock"];
+export const MAX_PREVIEW_PAGES = 10;
+
+// textarea এর লেখা থেকে লিংকের তালিকা (সর্বোচ্চ ১০টা)
+const toLinkList = (text) =>
+  String(text || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, MAX_PREVIEW_PAGES);
 
 // form এর string গুলোকে সঠিক type এ বদলে database এ পাঠানোর উপযোগী করা
 export function toPayload(form) {
   const out = {};
   for (const [k, v] of Object.entries(form)) {
-    if (NUMBER_FIELDS.includes(k)) {
+    if (k === "previewPages") {
+      out.previewPages = toLinkList(v);
+    } else if (NUMBER_FIELDS.includes(k)) {
       if (v !== "" && v !== null && v !== undefined) out[k] = Number(v);
     } else {
       out[k] = typeof v === "string" ? v.trim() : v;
@@ -48,7 +62,14 @@ const Field = ({ label, required, children, hint }) => (
 );
 
 export default function BookForm({ initial = EMPTY_BOOK, submitLabel = "সেভ করুন", onSubmit }) {
-  const [form, setForm] = useState({ ...EMPTY_BOOK, ...initial });
+  const [form, setForm] = useState(() => {
+    const start = { ...EMPTY_BOOK, ...initial };
+    // database এ array থাকে, form এ প্রতি লাইনে একটা লিংক দেখাই
+    if (Array.isArray(start.previewPages)) start.previewPages = start.previewPages.join("\n");
+    return start;
+  });
+  const pageCount = toLinkList(form.previewPages).length;
+  const extraLines = String(form.previewPages || "").split(/\r?\n/).filter((s) => s.trim()).length > MAX_PREVIEW_PAGES;
   const [saving, setSaving] = useState(false);
   const set = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -125,6 +146,49 @@ export default function BookForm({ initial = EMPTY_BOOK, submitLabel = "সে�
                 <textarea name="description" value={form.description} onChange={set} rows={5} className="textarea textarea-bordered w-full" placeholder="বইয়ের সংক্ষিপ্ত পরিচিতি। নতুন অনুচ্ছেদের জন্য একটা খালি লাইন দিন।" />
               </Field>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-base-300 bg-base-100 p-5">
+          <h2 className="mb-1 font-semibold">একটু পড়ুন</h2>
+          <p className="mb-4 text-xs text-base-content/50">
+            বইয়ের ভেতরের পাতার ছবি। পাঠক details পেজে &quot;একটু পড়ুন&quot; বাটনে চাপলে এগুলো দেখবে।
+          </p>
+          <Field
+            label={`পাতার ছবির লিংক (${pageCount}/${MAX_PREVIEW_PAGES})`}
+            hint="প্রতি লাইনে একটা লিংক দিন, যে ক্রমে দেবেন সেই ক্রমে দেখাবে। খালি রাখলে বাটন দেখাবে না।"
+          >
+            <textarea
+              name="previewPages"
+              value={form.previewPages}
+              onChange={set}
+              rows={6}
+              className="textarea textarea-bordered w-full font-mono text-xs"
+              placeholder={"https://i.ibb.co/.../page-1.jpg\nhttps://i.ibb.co/.../page-2.jpg"}
+            />
+          </Field>
+          {extraLines && (
+            <p className="mt-2 text-xs text-warning">শুধু প্রথম {MAX_PREVIEW_PAGES}টা লিংক সেভ হবে।</p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-base-300 bg-base-100 p-5">
+          <h2 className="mb-1 font-semibold">লেখক পরিচিতি</h2>
+          <p className="mb-4 text-xs text-base-content/50">
+            একই লেখকের একটা বইয়ে দিলেই হবে, তাঁর অন্য বইয়েও এটা দেখাবে।
+          </p>
+          <div className="grid gap-4">
+            <Field label="লেখকের ছবির লিংক">{input("authorImg", { type: "url", placeholder: "https://..." })}</Field>
+            <Field label="লেখক সম্পর্কে">
+              <textarea
+                name="authorBio"
+                value={form.authorBio}
+                onChange={set}
+                rows={4}
+                className="textarea textarea-bordered w-full"
+                placeholder="লেখকের জন্ম, পড়াশোনা, উল্লেখযোগ্য কাজ ইত্যাদি"
+              />
+            </Field>
           </div>
         </div>
 
