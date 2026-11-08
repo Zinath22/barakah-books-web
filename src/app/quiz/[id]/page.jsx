@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiRefreshCw, FiXCircle } from "react-icons/fi";
+import { FiArrowLeft, FiArrowRight, FiRefreshCw } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useAuth } from "@/provider/AuthProvider";
+import QuizReview from "@/components/quiz/QuizReview";
 import { toBn } from "@/lib/books";
 import { gradeLabel, OPTION_LABELS } from "@/lib/quiz";
 
@@ -145,6 +146,11 @@ export default function TakeQuizPage() {
             <Link href="/quiz?tab=history" className="btn btn-outline rounded-full">
               আমার সব ফলাফল
             </Link>
+            {result.attemptId && (
+              <Link href={`/quiz/solution/${result.attemptId}`} className="btn btn-ghost rounded-full">
+                সমাধান পেজ
+              </Link>
+            )}
             <Link href={`/products/${quiz.bookId}`} className="btn btn-ghost rounded-full">
               বইটি দেখুন
             </Link>
@@ -152,40 +158,7 @@ export default function TakeQuizPage() {
         </div>
 
         <h2 className="text-lg font-bold">উত্তর ও ব্যাখ্যা</h2>
-        {result.results.map((r, i) => (
-          <div key={i} className={`rounded-3xl border bg-base-100 p-5 ${r.correct ? "border-success/40" : "border-error/40"}`}>
-            <p className="flex gap-2 font-semibold">
-              {r.correct ? <FiCheckCircle className="mt-1 shrink-0 text-success" /> : <FiXCircle className="mt-1 shrink-0 text-error" />}
-              <span>
-                {toBn(i + 1)}. {r.question}
-              </span>
-            </p>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {r.options.map((o, k) => {
-                const isAnswer = k === r.answer;
-                const isWrongPick = k === r.chosen && !r.correct;
-                return (
-                  <li
-                    key={k}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
-                      isAnswer ? "border-success bg-success/10 font-medium" : isWrongPick ? "border-error bg-error/10" : "border-base-300"
-                    }`}
-                  >
-                    <span className="font-semibold text-base-content/60">{OPTION_LABELS[k]}.</span>
-                    <span className="flex-1">{o}</span>
-                    {isAnswer && <span className="text-xs text-success">সঠিক</span>}
-                    {isWrongPick && <span className="text-xs text-error">আপনার উত্তর</span>}
-                  </li>
-                );
-              })}
-            </ul>
-            {r.chosen === null && <p className="mt-2 text-sm text-warning">এই প্রশ্নের উত্তর দেননি</p>}
-            <div className="mt-3 rounded-2xl bg-base-200 p-3 text-sm leading-relaxed">
-              <b>ব্যাখ্যা:</b> {r.explanation}
-              {r.source && <span className="mt-1 block text-xs text-base-content/60">রেফারেন্স: {r.source}</span>}
-            </div>
-          </div>
-        ))}
+        <QuizReview results={result.results} />
       </div>
     );
   }

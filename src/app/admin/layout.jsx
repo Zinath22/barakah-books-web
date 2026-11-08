@@ -24,7 +24,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/products", label: "📚 বই ম্যানেজ"  },
     { href: "/admin/products/add", label: "➕ নতুন বই" },
     { href: "/admin/orders",   label: "📦 অর্ডার" },
-    { href: "/admin/carts",    label: "🛒 কার্ট"     },
+    // { href: "/admin/carts",    label: "🛒 কার্ট"     },
     { href: "/admin/coupons",  label: "🏷️ কুপন"  },
         { href: "/admin/quizzes",  label: "📝 কুইজ" },
   ];

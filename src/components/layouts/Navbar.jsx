@@ -34,7 +34,7 @@ const LINKS = [
   { href: "/", label: "হোম" },
   { href: "/products", label: "সব বই" },
   { href: "/products?sort=popular", label: "বেস্টসেলার" },
-  { href: "/products?sort=discount", label: "অফার" },
+  // { href: "/products?sort=discount", label: "অফার" },
     { href: "/reading", label: "পড়ার যাত্রা" },
   { href: "/quiz", label: "কুইজ" },
 ];
@@ -91,7 +91,7 @@ const Navbar = () => {
       <div className="bg-primary text-primary-content">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-1.5 text-xs sm:px-6 lg:px-8">
           <span className="truncate">🌙 {hijri ? `আজ ${hijri}` : "আসসালামু আলাইকুম"}</span>
-          <span className="hidden sm:inline">🚚 সারাদেশে ক্যাশ অন ডেলিভারি</span>
+          {/* <span className="hidden sm:inline">🚚 সারাদেশে ক্যাশ অন ডেলিভারি</span>  */}
           <span className="hidden items-center gap-1 md:flex"><FiPhone /> ০১৭০০-০০০০০০</span>
         </div>
       </div>

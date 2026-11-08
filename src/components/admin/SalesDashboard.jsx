@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FiArrowDownRight, FiArrowUpRight, FiMinus } from "react-icons/fi";
 import SalesChart from "./SalesChart";
@@ -17,6 +18,15 @@ const monthKey = (d) => `${d.getFullYear()}-${d.getMonth()}`;
 // অর্ডারের টাকা: /api/orders এ total, পুরোনো payment অর্ডারে amount
 const orderAmount = (o) => Number(o.total ?? o.amount ?? 0) || 0;
 const isCancelled = (o) => /cancel|fail|refund/i.test(`${o.status || ""} ${o.orderStatus || ""} ${o.paymentStatus || ""}`);
+
+// বিক্রি গোনা হয় শুধু টাকা হাতে আসার পর:
+//  - অনলাইন পেমেন্ট → পেমেন্ট সফল হলেই
+//  - ক্যাশ অন ডেলিভারি → অ্যাডমিন "Approve" বা "Delivered" করার পর
+// (COD আসার আগের পুরোনো অর্ডার সব অনলাইনে টাকা দেওয়া, তাই সেগুলোতে তথ্য না থাকলে "Paid" ধরা হয়)
+const isPaid = (o) =>
+  o.paymentMethod === "COD" ? o.payment === "Paid" : (o.payment || o.paymentStatus || "Paid") === "Paid";
+// কোন দিনের বিক্রি: টাকা পাওয়ার দিন (paidAt), না থাকলে অর্ডারের দিন
+const saleDate = (o) => new Date(o.paidAt || o.createdAt);
 
 const RANGES = [
   { value: "week", label: "সাপ্তাহিক", sub: "গত ৭ দিন" },
@@ -124,11 +134,17 @@ export default function SalesDashboard() {
   const orders = useMemo(
     () =>
       (raw || [])
-        .filter((o) => o.createdAt && !isCancelled(o))
-        .map((o) => ({ date: new Date(o.createdAt), value: orderAmount(o) }))
+        .filter((o) => o.createdAt && !isCancelled(o) && isPaid(o))
+        .map((o) => ({ date: saleDate(o), value: orderAmount(o) }))
         .filter((o) => !isNaN(o.date)),
     [raw]
   );
+
+  // ক্যাশ অন ডেলিভারির যে টাকা এখনো আসেনি (বিক্রিতে গোনা হয়নি)
+  const due = useMemo(() => {
+    const list = (raw || []).filter((o) => !isCancelled(o) && !isPaid(o));
+    return { count: list.length, value: list.reduce((s, o) => s + orderAmount(o), 0) };
+  }, [raw]);
 
   const stats = useMemo(() => {
     const today = startOfDay(now).getTime();
@@ -176,6 +192,18 @@ export default function SalesDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ===== কীভাবে গোনা হয় + বাকি টাকা ===== */}
+      <div className="flex flex-col gap-2 rounded-2xl border border-base-300 bg-base-100 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-base-content/70">
+          ✅ শুধু <b>টাকা পাওয়া</b> অর্ডার বিক্রিতে গোনা হয়: অনলাইনে পেমেন্ট সফল হলে, আর ক্যাশ অন ডেলিভারিতে অ্যাডমিন <b>Approve</b> করলে।
+        </p>
+        {due.count > 0 && (
+          <Link href="/admin/orders" className="badge badge-warning badge-lg shrink-0 gap-1 whitespace-nowrap py-3 hover:brightness-95">
+            ⏳ আসা বাকি: {taka(due.value)} ({toBn(due.count)}টি)
+          </Link>
+        )}
+      </div>
+
       {/* ===== সারসংক্ষেপ কার্ড ===== */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {cards.map((c) => (

@@ -1,178 +1,13 @@
 
 
 
-
-// "use client";
-
-// import { useAuth } from "@/provider/AuthProvider";
-// import { useRouter } from "next/navigation";
-// import { useEffect, useState } from "react";
-// import { getAuth } from "firebase/auth";
-
-// export default function DashboardPage() {
-//   const { user, loading } = useAuth();
-//   const router = useRouter();
-
-//   const [orders, setOrders]               = useState([]);
-//   const [ordersLoading, setOrdersLoading] = useState(true);
-
-//   useEffect(() => {
-//     if (loading) return;
-//     if (user?.role === "admin") {
-//       router.push("/admin");
-//     }
-//   }, [user, loading]);
-
-//   useEffect(() => {
-//     if (!user) return;
-
-//     const fetchOrders = async () => {
-//       try {
-//         setOrdersLoading(true);
-
-//         const auth         = getAuth();
-//         const firebaseUser = auth.currentUser;
-//         const email        = firebaseUser?.email || user?.email;
-
-//         if (!email) return;
-
-//         const res  = await fetch(`/api/orders/user?email=${email}`);
-//         const data = await res.json();
-
-//         if (data.success) {
-//           setOrders(data.orders);
-//         }
-//       } catch (error) {
-//         console.log("FETCH ORDERS ERROR:", error);
-//       } finally {
-//         setOrdersLoading(false);
-//       }
-//     };
-
-//     fetchOrders();
-//   }, [user]);
-
-//   if (loading) return <p className="p-5">Loading...</p>;
-
-//   return (
-//     <div className="max-w-6xl mx-auto p-6">
-
-//       <div className="flex items-center gap-4 mb-8">
-//         {user?.photoURL ? (
-//           <img
-//             src={user.photoURL}
-//             alt="avatar"
-//             className="w-16 h-16 rounded-full object-cover border-4 border-orange-300"
-//           />
-//         ) : (
-//           <div className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-//             {user?.name?.[0]?.toUpperCase() || "U"}
-//           </div>
-//         )}
-
-//         <div>
-//           <h1 className="text-2xl font-bold">
-//             Welcome, {user?.name || "User"} 👋
-//           </h1>
-//           <p className="text-gray-500 text-sm">{user?.email}</p>
-//         </div>
-//       </div>
-
-//       <h2 className="text-xl font-bold mb-4">📦 My Orders</h2>
-
-//       {ordersLoading ? (
-//         <div className="text-center py-10">
-//           <span className="loading loading-spinner loading-lg text-orange-500" />
-//         </div>
-//       ) : orders.length === 0 ? (
-//         <div className="text-center py-16 bg-white rounded-xl shadow border">
-//           <p className="text-5xl mb-4">🛍️</p>
-//           <p className="text-gray-500 text-lg">No orders yet</p>
-//           <button
-//             onClick={() => router.push("/")}
-//             className="btn btn-primary mt-4"
-//           >
-//             Start Shopping
-//           </button>
-//         </div>
-//       ) : (
-//         <div className="overflow-x-auto rounded-xl shadow border">
-//           <table className="table table-zebra w-full">
-//             <thead className="bg-orange-50 text-gray-700 text-sm">
-//               <tr>
-//                 <th>#</th>
-//                 <th>Date</th>
-//                 <th>Products</th>
-//                 <th className="text-center">Qty</th>
-//                 <th className="text-right">Total Paid</th>
-//                 <th className="text-center">Status</th>
-//               </tr>
-//             </thead>
-
-//             <tbody>
-//               {orders.map((order, index) => (
-//                 <tr key={order._id} className="align-middle">
-
-//                   <td className="font-semibold text-gray-400">
-//                     {index + 1}
-//                   </td>
-
-//                   <td className="text-sm text-gray-500 whitespace-nowrap">
-//                     {order.createdAt
-//                       ? new Date(order.createdAt).toLocaleDateString("en-BD", {
-//                           year:  "numeric",
-//                           month: "short",
-//                           day:   "numeric",
-//                         })
-//                       : "—"}
-//                   </td>
-
-//                   <td className="text-sm">
-//                     {order.products?.map((p, i) => (
-//                       <div key={i} className="mb-0.5">{p.title}</div>
-//                     ))}
-//                   </td>
-
-//                   <td className="text-center text-sm">
-//                     {order.products?.map((p, i) => (
-//                       <div key={i} className="mb-0.5">{p.qty || 1}</div>
-//                     ))}
-//                   </td>
-
-//                   <td className="text-right font-bold text-orange-500">
-//                     Tk {order.total}
-//                   </td>
-
-//                   <td className="text-center">
-//                     <span
-//                       className={`badge badge-sm ${
-//                         order.status === "Approved"
-//                           ? "badge-success"
-//                           : "badge-warning"
-//                       }`}
-//                     >
-//                       {order.status === "Approved" ? "✅ Approved" : "⏳ Pending"}
-//                     </span>
-//                   </td>
-
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       )}
-
-//     </div>
-//   );
-// }
-
-
 "use client";
 
 import { useAuth } from "@/provider/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
+import { orderStatus, orderTotal, paymentInfo } from "@/lib/orders";
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -274,7 +109,7 @@ export default function DashboardPage() {
                   <th>Date</th>
                   <th>Products</th>
                   <th className="text-center">Qty</th>
-                  <th className="text-right">Total Paid</th>
+                  <th className="text-right">Total</th>
                   <th className="text-center">Status</th>
                 </tr>
               </thead>
@@ -309,20 +144,18 @@ export default function DashboardPage() {
                       ))}
                     </td>
 
-                    <td className="text-right font-bold text-orange-500">
-                      Tk {order.total}
+                    <td className="text-right">
+                      <div className="font-bold text-orange-500">Tk {orderTotal(order)}</div>
+                      <div className="text-xs text-gray-500">{paymentInfo(order).method}</div>
                     </td>
 
                     <td className="text-center">
-                      <span
-                        className={`badge badge-sm ${
-                          order.status === "Approved"
-                            ? "badge-success"
-                            : "badge-warning"
-                        }`}
-                      >
-                        {order.status === "Approved" ? "✅ Approved" : "⏳ Pending"}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`badge badge-sm ${orderStatus(order).badge}`}>{orderStatus(order).label}</span>
+                        <span className={`badge badge-sm badge-outline ${paymentInfo(order).paid ? "badge-success" : "badge-warning"}`}>
+                          {paymentInfo(order).label}
+                        </span>
+                      </div>
                     </td>
 
                   </tr>
@@ -343,15 +176,7 @@ export default function DashboardPage() {
                   <span className="text-sm font-semibold text-gray-600">
                     Order #{index + 1}
                   </span>
-                  <span
-                    className={`badge badge-sm ${
-                      order.status === "Approved"
-                        ? "badge-success"
-                        : "badge-warning"
-                    }`}
-                  >
-                    {order.status === "Approved" ? "✅ Approved" : "⏳ Pending"}
-                  </span>
+                  <span className={`badge badge-sm ${orderStatus(order).badge}`}>{orderStatus(order).label}</span>
                 </div>
 
                 {/* CARD BODY */}
@@ -378,9 +203,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
+                  <div className="flex justify-between text-gray-500">
+                    <span>পেমেন্ট</span>
+                    <span>{paymentInfo(order).method}</span>
+                  </div>
+
                   <div className="flex justify-between font-bold border-t pt-2">
-                    <span>Total Paid</span>
-                    <span className="text-orange-500">Tk {order.total}</span>
+                    <span>{paymentInfo(order).paid ? "পরিশোধিত" : "ডেলিভারিতে দেবেন"}</span>
+                    <span className="text-orange-500">Tk {orderTotal(order)}</span>
                   </div>
                 </div>
               </div>

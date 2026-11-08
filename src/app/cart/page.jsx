@@ -5,17 +5,45 @@
 "use client";
 import BookCover from "@/components/books/BookCover";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/provider/AuthProvider";
 import { FaTrash } from "react-icons/fa";
 import Swal from "sweetalert2";
 import CouponInput from "@/components/CouponInput";
+import CheckoutDetails from "@/components/CheckoutDetails";
+import { normalizePhone, shippingError } from "@/lib/orders";
+
+const EMPTY_INFO = { name: "", phone: "", address: "", note: "" };
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQty } = useCart();
+  const { cart, removeFromCart, updateQty, clearCart } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const [coupon, setCoupon] = useState(null);
   const [couponBoxKey, setCouponBoxKey] = useState(0);
+
+  // ডেলিভারির তথ্য আর পেমেন্টের ধরন — আগের অর্ডারের তথ্য মনে রাখা হয়
+  const [info, setInfo] = useState(EMPTY_INFO);
+  const [method, setMethod] = useState("cod");
+  const [placing, setPlacing] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("checkoutInfo") || "null");
+      if (saved) {
+        setInfo({ ...EMPTY_INFO, ...saved });
+        if (saved.method) setMethod(saved.method);
+      }
+    } catch {}
+  }, []);
+
+  // নাম খালি থাকলে লগইন করা ইউজারের নাম বসানো
+  useEffect(() => {
+    if (user?.name) setInfo((i) => (i.name ? i : { ...i, name: user.name }));
+  }, [user?.name]);
 
   const qtyOf = (item) => Math.max(1, Number(item.qty) || 1);
   const maxOf = (item) => (Number(item.stock) > 0 ? Number(item.stock) : 99);
@@ -74,11 +102,42 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
+    if (placing) return;
     try {
       if (totalPrice <= 0) {
         Swal.fire("Error", "কার্ট খালি", "error");
         return;
       }
+
+      // অর্ডার করতে লগইন লাগবে (অর্ডারটা কার, সেটা জানতে)
+      if (!user?.email) {
+        const go = await Swal.fire({
+          icon: "info",
+          title: "অর্ডার করতে লগইন করুন",
+          showCancelButton: true,
+          confirmButtonText: "লগইন",
+          cancelButtonText: "পরে",
+        });
+        if (go.isConfirmed) router.push("/login");
+        return;
+      }
+
+      // ডেলিভারির তথ্য যাচাই
+      const shipping = {
+        name: info.name.trim(),
+        phone: normalizePhone(info.phone),
+        address: info.address.trim(),
+        note: info.note.trim(),
+      };
+      const err = shippingError(shipping);
+      if (err) {
+        Swal.fire("তথ্য অসম্পূর্ণ", err, "warning");
+        return;
+      }
+      // পরের বারের জন্য আর অনলাইন পেমেন্টের পর অর্ডার সেভের জন্য রাখা
+      localStorage.setItem("checkoutInfo", JSON.stringify({ ...shipping, method }));
+
+      setPlacing(true);
 
       if (coupon) {
         const validateRes = await fetch("/api/coupons/validate", {
@@ -87,7 +146,7 @@ export default function CartPage() {
           body: JSON.stringify({
             code:        coupon.code,
             orderAmount: totalPrice,
-            userEmail:   "customer@test.com",
+            userEmail:   user.email,
           }),
         });
 
@@ -97,24 +156,65 @@ export default function CartPage() {
           Swal.fire("Coupon Error", validateData.message, "error");
           setCoupon(null);
           localStorage.removeItem("appliedCoupon");
+          setCouponBoxKey((k) => k + 1);
           return;
         }
       }
 
+      const products = cart.map((item) => ({
+        _id:   item._id,
+        title: item.title,
+        author: item.author || "",
+        img:   item.img || item.image || "",
+        price: item.price,
+        qty:   qtyOf(item),
+      }));
+
+      // ===== ক্যাশ অন ডেলিভারি: পেমেন্ট ছাড়াই সরাসরি অর্ডার সেভ =====
+      if (method === "cod") {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmail:      user.email,
+            products,
+            total:          finalAmount,
+            originalAmount: totalPrice,
+            discountAmount: discountAmount,
+            couponCode:     coupon?.code || null,
+            paymentMethod:  "COD",
+            shipping,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          Swal.fire("অর্ডার হয়নি", data.message || "আবার চেষ্টা করুন", "error");
+          return;
+        }
+        clearCart();
+        localStorage.removeItem("appliedCoupon");
+        await Swal.fire({
+          icon: "success",
+          title: "অর্ডার সম্পন্ন হয়েছে!",
+          html: `বই হাতে পেয়ে ডেলিভারিম্যানকে <b>৳ ${finalAmount}</b> দেবেন।<br/>অর্ডারের অবস্থা "আমার অর্ডার" পেজে দেখতে পাবেন।`,
+          confirmButtonText: "আমার অর্ডার দেখুন",
+          confirmButtonColor: "#1b5e45",
+        });
+        router.push("/dashboard");
+        return;
+      }
+
+      // ===== অনলাইন পেমেন্ট (SSLCommerz) =====
       const res = await fetch("/api/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount:         finalAmount,
-          name:           "Barakah Books Customer",
-          email:          "customer@test.com",
-          phone:          "01700000000",
-          products:       cart.map((item) => ({
-            _id:   item._id,
-            title: item.title,
-            price: item.price,
-            qty:   qtyOf(item),
-          })),
+          name:           shipping.name,
+          email:          user.email,
+          phone:          shipping.phone,
+          address:        shipping.address,
+          products,
           couponCode:     coupon?.code        || null,
           originalAmount: totalPrice,
           discountAmount: discountAmount,
@@ -122,8 +222,6 @@ export default function CartPage() {
       });
 
       const data = await res.json();
-
-      console.log(data);
 
       if (data.success && data.url) {
         window.location.href = data.url;
@@ -137,6 +235,8 @@ export default function CartPage() {
     } catch (error) {
       console.log(error);
       Swal.fire("Error", "Something went wrong", "error");
+    } finally {
+      setPlacing(false);
     }
   };
 
@@ -232,7 +332,7 @@ export default function CartPage() {
           <CouponInput
             key={couponBoxKey}
             orderAmount={totalPrice}
-            userEmail="customer@test.com"
+            userEmail={user?.email || ""}
             onApply={handleApplyCoupon}
             onRemove={handleRemoveCoupon}
           />
@@ -257,14 +357,27 @@ export default function CartPage() {
             </div>
           </div>
 
+          {/* DELIVERY INFO + PAYMENT METHOD */}
+          <CheckoutDetails info={info} onInfo={setInfo} method={method} onMethod={setMethod} />
+
           {/* CHECKOUT BUTTON */}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex flex-col items-stretch gap-2 sm:items-end">
             <button
               onClick={handleCheckout}
+              disabled={placing}
               className="btn btn-success btn-md sm:btn-lg w-full sm:w-auto"
             >
-              অর্ডার করুন
+              {placing
+                ? "অপেক্ষা করুন..."
+                : method === "cod"
+                ? `অর্ডার নিশ্চিত করুন (৳ ${finalAmount})`
+                : `পেমেন্ট করুন (৳ ${finalAmount})`}
             </button>
+            <p className="text-center text-xs text-gray-500 sm:text-right">
+              {method === "cod"
+                ? "বই হাতে পেয়ে টাকা দেবেন"
+                : "SSLCommerz এর নিরাপদ পেমেন্ট পেজে নিয়ে যাওয়া হবে"}
+            </p>
           </div>
         </>
       )}

@@ -45,6 +45,7 @@ export async function POST(req, { params }) {
       userEmail,
       userName: userName || "",
       answers: results.map((r) => r.chosen),
+      results, // কুইজ দেওয়ার সময়ের প্রশ্ন-উত্তর — পরে সমাধান পেজে দেখানোর জন্য
       score,
       total,
       percent,

@@ -180,6 +180,7 @@ export default function QuizListPage() {
                   <th>কুইজ</th>
                   <th>তারিখ</th>
                   <th className="text-right">নম্বর</th>
+                  <th className="text-right">সমাধান</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,6 +198,11 @@ export default function QuizListPage() {
                         {toBn(a.score)}/{toBn(a.total)}
                       </span>
                       <span className={`badge badge-sm ${scoreTone(a.percent)}`}>{toBn(a.percent)}%</span>
+                    </td>
+                    <td className="text-right">
+                      <Link href={`/quiz/solution/${a._id}`} className="btn btn-outline btn-primary btn-xs whitespace-nowrap rounded-full">
+                        সমাধান দেখুন
+                      </Link>
                     </td>
                   </tr>
                 ))}

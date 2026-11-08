@@ -85,71 +85,101 @@
 
 
 import { NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
 import { dbConnect } from "@/lib/dbConnect";
+import { normalizePhone, shippingError } from "@/lib/orders";
 
 // =========================
-// SAVE ORDER
+// ✅ অর্ডার সেভ
+// POST /api/orders
+// দুই রকম অর্ডার আসে:
+//  ১. ক্যাশ অন ডেলিভারি — কার্ট পেজ থেকে সরাসরি (paymentMethod: "COD")
+//  ২. অনলাইন পেমেন্ট — SSLCommerz এ টাকা দেওয়ার পর /payment/success পেজ থেকে
 // =========================
 export async function POST(req) {
   try {
     const body = await req.json();
+    const { userEmail, products, total } = body;
 
-    console.log("ORDER BODY:", body);
+    if (!userEmail || !Array.isArray(products) || products.length === 0) {
+      return NextResponse.json({ success: false, message: "Invalid order data" }, { status: 400 });
+    }
 
-    const {
-      userEmail,
-      products,
-      total,
-      payment,
-      status,
-    } = body;
+    const amount = Number(total);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ success: false, message: "অর্ডারের টাকার পরিমাণ ঠিক নেই" }, { status: 400 });
+    }
 
-    // Validation
-    if (
-      !userEmail ||
-      !products ||
-      !Array.isArray(products) ||
-      products.length === 0
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid order data",
-        },
-        { status: 400 }
-      );
+    const isCOD = body.paymentMethod === "COD";
+
+    // ডেলিভারির তথ্য — COD তে অবশ্যই লাগবে
+    const shipping = body.shipping
+      ? {
+          name: String(body.shipping.name || "").trim(),
+          phone: normalizePhone(body.shipping.phone),
+          address: String(body.shipping.address || "").trim(),
+          note: String(body.shipping.note || "").trim(),
+        }
+      : null;
+    if (isCOD) {
+      const err = shippingError(shipping || {});
+      if (err) return NextResponse.json({ success: false, message: err }, { status: 400 });
     }
 
     const db = await dbConnect();
 
-    console.log("DB CONNECTED");
-
-    const result = await db.collection("orders").insertOne({
+    const order = {
       userEmail,
-      products,
-      total: Number(total),
-      payment: payment || "Paid",
-      status: status || "Pending",
+      products: products.map((p) => ({
+        _id: p._id,
+        title: p.title,
+        author: p.author || "",
+        img: p.img || p.image || "",
+        price: Number(p.price) || 0,
+        qty: Math.max(1, Number(p.qty) || 1),
+      })),
+      total: amount,
+      originalAmount: Number(body.originalAmount) || amount,
+      discountAmount: Number(body.discountAmount) || 0,
+      couponCode: body.couponCode || null,
+      paymentMethod: isCOD ? "COD" : "Online",
+      // COD তে টাকা ডেলিভারির সময় পাওয়া যায়, তাই শুরুতে সবসময় "Unpaid" —
+      // ব্রাউজার যা-ই পাঠাক, সার্ভার নিজে ঠিক করে
+      payment: isCOD ? "Unpaid" : body.payment || "Paid",
+      status: "Pending",
+      shipping,
       createdAt: new Date(),
-    });
+      // অনলাইনে টাকা এখনই এসেছে; COD তে আসবে অ্যাডমিন নিশ্চিত করলে (তখন paidAt বসে)
+      paidAt: isCOD ? null : new Date(),
+    };
 
-    
-    // বিক্রির সংখ্যা বাড়ানো আর স্টক কমানো (বেস্টসেলার তালিকার জন্য)
+    const result = await db.collection("orders").insertOne(order);
+
+    // COD তে কুপন ব্যবহারের হিসাব (অনলাইনে এটা /api/payment এ হয়)
+    if (isCOD && order.couponCode) {
+      try {
+        await db.collection("coupons").updateOne(
+          { code: String(order.couponCode).toUpperCase().trim() },
+          { $inc: { usedCount: 1 }, $addToSet: { usedBy: userEmail } }
+        );
+      } catch (e) {
+        console.log("COUPON RECORD ERROR:", e.message);
+      }
+    }
+
+    // বিক্রির সংখ্যা বাড়ানো আর স্টক কমানো
     try {
-      const { ObjectId } = await import("mongodb");
-      for (const item of products) {
+      for (const item of order.products) {
         if (!item?._id || !ObjectId.isValid(item._id)) continue;
-        const qty = Number(item.qty) || 1;
-        await db.collection("products").updateOne({ _id: new ObjectId(item._id) }, { $inc: { sold: qty } });
+        await db.collection("products").updateOne({ _id: new ObjectId(item._id) }, { $inc: { sold: item.qty } });
         await db.collection("products").updateOne(
-          { _id: new ObjectId(item._id), stock: { $gte: qty } },
-          { $inc: { stock: -qty } }
+          { _id: new ObjectId(item._id), stock: { $gte: item.qty } },
+          { $inc: { stock: -item.qty } }
         );
       }
     } catch (e) {
       console.log("SOLD COUNT ERROR:", e.message);
     }
-    console.log("INSERT RESULT:", result);
 
     return NextResponse.json({
       success: true,
@@ -158,14 +188,7 @@ export async function POST(req) {
     });
   } catch (error) {
     console.log("ORDER SAVE ERROR:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 

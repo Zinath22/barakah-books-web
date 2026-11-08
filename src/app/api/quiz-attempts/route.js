@@ -12,7 +12,7 @@ export async function GET(req) {
     const db = await dbConnect();
     const attempts = await db
       .collection("quizAttempts")
-      .find({ userEmail: email }, { projection: { answers: 0 } })
+      .find({ userEmail: email }, { projection: { answers: 0, results: 0 } })
       .sort({ createdAt: -1 })
       .limit(100)
       .toArray();
