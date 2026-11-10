@@ -37,6 +37,7 @@ const LINKS = [
   // { href: "/products?sort=discount", label: "অফার" },
     { href: "/reading", label: "পড়ার যাত্রা" },
   { href: "/quiz", label: "কুইজ" },
+    { href: "/track", label: "অর্ডার ট্র্যাক" },
 ];
 
 const Navbar = () => {
